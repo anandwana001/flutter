@@ -54,12 +54,12 @@ class TickerMode extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(TickerMode old) => enabled != old.enabled;
+  bool updateShouldNotify(TickerMode oldWidget) => enabled != oldWidget.enabled;
 
   @override
-  void debugFillProperties(DiagnosticPropertiesBuilder description) {
-    super.debugFillProperties(description);
-    description.add(new FlagProperty('mode', value: enabled, ifTrue: 'enabled', ifFalse: 'disabled', showName: true));
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(FlagProperty('mode', value: enabled, ifTrue: 'enabled', ifFalse: 'disabled', showName: true));
   }
 }
 
@@ -86,7 +86,7 @@ abstract class SingleTickerProviderStateMixin<T extends StatefulWidget> extends 
     assert(() {
       if (_ticker == null)
         return true;
-      throw new FlutterError(
+      throw FlutterError(
         '$runtimeType is a SingleTickerProviderStateMixin but multiple tickers were created.\n'
         'A SingleTickerProviderStateMixin can only be used as a TickerProvider once. If a '
         'State is used for multiple AnimationController objects, or if it is passed to other '
@@ -94,7 +94,7 @@ abstract class SingleTickerProviderStateMixin<T extends StatefulWidget> extends 
         'mixing in a SingleTickerProviderStateMixin, use a regular TickerProviderStateMixin.'
       );
     }());
-    _ticker = new Ticker(onTick, debugLabel: 'created by $this');
+    _ticker = Ticker(onTick, debugLabel: 'created by $this');
     // We assume that this is called from initState, build, or some sort of
     // event handler, and that thus TickerMode.of(context) would return true. We
     // can't actually check that here because if we're in initState then we're
@@ -107,7 +107,7 @@ abstract class SingleTickerProviderStateMixin<T extends StatefulWidget> extends 
     assert(() {
       if (_ticker == null || !_ticker.isActive)
         return true;
-      throw new FlutterError(
+      throw FlutterError(
         '$this was disposed with an active Ticker.\n'
         '$runtimeType created a Ticker via its SingleTickerProviderStateMixin, but at the time '
         'dispose() was called on the mixin, that Ticker was still active. The Ticker must '
@@ -128,8 +128,8 @@ abstract class SingleTickerProviderStateMixin<T extends StatefulWidget> extends 
   }
 
   @override
-  void debugFillProperties(DiagnosticPropertiesBuilder description) {
-    super.debugFillProperties(description);
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
     String tickerDescription;
     if (_ticker != null) {
       if (_ticker.isActive && _ticker.muted)
@@ -141,9 +141,8 @@ abstract class SingleTickerProviderStateMixin<T extends StatefulWidget> extends 
       else
         tickerDescription = 'inactive';
     }
-    description.add(new DiagnosticsProperty<Ticker>('ticker', _ticker, description: tickerDescription, showSeparator: false, defaultValue: null));
+    properties.add(DiagnosticsProperty<Ticker>('ticker', _ticker, description: tickerDescription, showSeparator: false, defaultValue: null));
   }
-
 }
 
 /// Provides [Ticker] objects that are configured to only tick while the current
@@ -166,8 +165,8 @@ abstract class TickerProviderStateMixin<T extends StatefulWidget> extends State<
 
   @override
   Ticker createTicker(TickerCallback onTick) {
-    _tickers ??= new Set<_WidgetTicker>();
-    final _WidgetTicker result = new _WidgetTicker(onTick, this, debugLabel: 'created by $this');
+    _tickers ??= Set<_WidgetTicker>();
+    final _WidgetTicker result = _WidgetTicker(onTick, this, debugLabel: 'created by $this');
     _tickers.add(result);
     return result;
   }
@@ -184,7 +183,7 @@ abstract class TickerProviderStateMixin<T extends StatefulWidget> extends State<
       if (_tickers != null) {
         for (Ticker ticker in _tickers) {
           if (ticker.isActive) {
-            throw new FlutterError(
+            throw FlutterError(
               '$this was disposed with an active Ticker.\n'
               '$runtimeType created a Ticker via its TickerProviderStateMixin, but at the time '
               'dispose() was called on the mixin, that Ticker was still active. All Tickers must '
@@ -205,16 +204,17 @@ abstract class TickerProviderStateMixin<T extends StatefulWidget> extends State<
   void didChangeDependencies() {
     final bool muted = !TickerMode.of(context);
     if (_tickers != null) {
-      for (Ticker ticker in _tickers)
+      for (Ticker ticker in _tickers) {
         ticker.muted = muted;
+      }
     }
     super.didChangeDependencies();
   }
 
   @override
-  void debugFillProperties(DiagnosticPropertiesBuilder description) {
-    super.debugFillProperties(description);
-    description.add(new DiagnosticsProperty<Set<Ticker>>(
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<Set<Ticker>>(
       'tickers',
       _tickers,
       description: _tickers != null ?
@@ -223,7 +223,6 @@ abstract class TickerProviderStateMixin<T extends StatefulWidget> extends State<
       defaultValue: null,
     ));
   }
-
 }
 
 // This class should really be called _DisposingTicker or some such, but this

@@ -53,27 +53,35 @@ class TextFormField extends FormField<String> {
     this.controller,
     String initialValue,
     FocusNode focusNode,
-    InputDecoration decoration: const InputDecoration(),
-    TextInputType keyboardType: TextInputType.text,
+    InputDecoration decoration = const InputDecoration(),
+    TextInputType keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    TextInputAction textInputAction,
     TextStyle style,
-    TextAlign textAlign: TextAlign.start,
-    bool autofocus: false,
-    bool obscureText: false,
-    bool autocorrect: true,
-    bool maxLengthEnforced: true,
-    int maxLines: 1,
+    TextAlign textAlign = TextAlign.start,
+    bool autofocus = false,
+    bool obscureText = false,
+    bool autocorrect = true,
+    bool autovalidate = false,
+    bool maxLengthEnforced = true,
+    int maxLines = 1,
     int maxLength,
+    VoidCallback onEditingComplete,
     ValueChanged<String> onFieldSubmitted,
     FormFieldSetter<String> onSaved,
     FormFieldValidator<String> validator,
     List<TextInputFormatter> inputFormatters,
+    bool enabled,
+    Brightness keyboardAppearance,
+    EdgeInsets scrollPadding = const EdgeInsets.all(20.0),
   }) : assert(initialValue == null || controller == null),
-       assert(keyboardType != null),
        assert(textAlign != null),
        assert(autofocus != null),
        assert(obscureText != null),
        assert(autocorrect != null),
+       assert(autovalidate != null),
        assert(maxLengthEnforced != null),
+       assert(scrollPadding != null),
        assert(maxLines == null || maxLines > 0),
        assert(maxLength == null || maxLength > 0),
        super(
@@ -81,26 +89,33 @@ class TextFormField extends FormField<String> {
     initialValue: controller != null ? controller.text : (initialValue ?? ''),
     onSaved: onSaved,
     validator: validator,
+    autovalidate: autovalidate,
     builder: (FormFieldState<String> field) {
       final _TextFormFieldState state = field;
       final InputDecoration effectiveDecoration = (decoration ?? const InputDecoration())
         .applyDefaults(Theme.of(field.context).inputDecorationTheme);
-      return new TextField(
+      return TextField(
         controller: state._effectiveController,
         focusNode: focusNode,
         decoration: effectiveDecoration.copyWith(errorText: field.errorText),
         keyboardType: keyboardType,
+        textInputAction: textInputAction,
         style: style,
         textAlign: textAlign,
+        textCapitalization: textCapitalization,
         autofocus: autofocus,
         obscureText: obscureText,
         autocorrect: autocorrect,
         maxLengthEnforced: maxLengthEnforced,
         maxLines: maxLines,
         maxLength: maxLength,
-        onChanged: field.onChanged,
+        onChanged: field.didChange,
+        onEditingComplete: onEditingComplete,
         onSubmitted: onFieldSubmitted,
         inputFormatters: inputFormatters,
+        enabled: enabled,
+        scrollPadding: scrollPadding,
+        keyboardAppearance: keyboardAppearance,
       );
     },
   );
@@ -112,7 +127,7 @@ class TextFormField extends FormField<String> {
   final TextEditingController controller;
 
   @override
-  _TextFormFieldState createState() => new _TextFormFieldState();
+  _TextFormFieldState createState() => _TextFormFieldState();
 }
 
 class _TextFormFieldState extends FormFieldState<String> {
@@ -127,7 +142,7 @@ class _TextFormFieldState extends FormFieldState<String> {
   void initState() {
     super.initState();
     if (widget.controller == null) {
-      _controller = new TextEditingController(text: widget.initialValue);
+      _controller = TextEditingController(text: widget.initialValue);
     } else {
       widget.controller.addListener(_handleControllerChanged);
     }
@@ -141,7 +156,7 @@ class _TextFormFieldState extends FormFieldState<String> {
       widget.controller?.addListener(_handleControllerChanged);
 
       if (oldWidget.controller != null && widget.controller == null)
-        _controller = new TextEditingController.fromValue(oldWidget.controller.value);
+        _controller = TextEditingController.fromValue(oldWidget.controller.value);
       if (widget.controller != null) {
         setValue(widget.controller.text);
         if (oldWidget.controller == null)
@@ -173,6 +188,6 @@ class _TextFormFieldState extends FormFieldState<String> {
     // example, the reset() method. In such cases, the FormField value will
     // already have been set.
     if (_effectiveController.text != value)
-      onChanged(_effectiveController.text);
+      didChange(_effectiveController.text);
   }
 }

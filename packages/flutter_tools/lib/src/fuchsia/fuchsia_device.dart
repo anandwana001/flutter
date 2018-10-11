@@ -10,9 +10,9 @@ import '../device.dart';
 
 /// Read the log for a particular device.
 class _FuchsiaLogReader extends DeviceLogReader {
-  FuchsiaDevice _device;
-
   _FuchsiaLogReader(this._device);
+
+  FuchsiaDevice _device;
 
   @override String get name => _device.name;
 
@@ -49,7 +49,7 @@ class FuchsiaDevice extends Device {
   Future<bool> isLatestBuildInstalled(ApplicationPackage app) async => false;
 
   @override
-  Future<bool> installApp(ApplicationPackage app) => new Future<bool>.value(false);
+  Future<bool> installApp(ApplicationPackage app) => Future<bool>.value(false);
 
   @override
   Future<bool> uninstallApp(ApplicationPackage app) async => false;
@@ -59,16 +59,16 @@ class FuchsiaDevice extends Device {
 
   @override
   Future<LaunchResult> startApp(
-    ApplicationPackage app, {
+    ApplicationPackage package, {
     String mainPath,
     String route,
     DebuggingOptions debuggingOptions,
     Map<String, dynamic> platformArgs,
-    bool prebuiltApplication: false,
-    bool applicationNeedsRebuild: false,
-    bool usesTerminalUi: false,
-    bool ipv6: false,
-  }) => new Future<Null>.error('unimplemented');
+    bool prebuiltApplication = false,
+    bool applicationNeedsRebuild = false,
+    bool usesTerminalUi = false,
+    bool ipv6 = false,
+  }) => Future<void>.error('unimplemented');
 
   @override
   Future<bool> stopApp(ApplicationPackage app) async {
@@ -85,7 +85,7 @@ class FuchsiaDevice extends Device {
   _FuchsiaLogReader _logReader;
   @override
   DeviceLogReader getLogReader({ApplicationPackage app}) {
-    _logReader ??= new _FuchsiaLogReader(this);
+    _logReader ??= _FuchsiaLogReader(this);
     return _logReader;
   }
 

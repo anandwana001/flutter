@@ -1,16 +1,35 @@
 Contributing to Flutter
 =======================
 
-[![Build Status](https://travis-ci.org/flutter/flutter.svg)](https://travis-ci.org/flutter/flutter)
+[![Build Status](https://api.cirrus-ci.com/github/flutter/flutter.svg)](https://cirrus-ci.org/flutter/flutter)
 
 _See also: [Flutter's code of conduct](https://flutter.io/design-principles/#code-of-conduct)_
+
+Welcome
+-------
+
+We gladly accept contributions via GitHub pull requests.
+
+Please become familiar with our
+[style guide](https://github.com/flutter/flutter/wiki/Style-guide-for-Flutter-repo) and
+[design philosophy](https://flutter.io/design-principles/). These guidelines are intended to
+keep the code consistent and avoid common pitfalls, and being familiar with them will
+make everything much easier for you. If you have questions about our processes or are looking
+for random tips and tricks, you may be interested in the [engine wiki](https://github.com/flutter/engine/wiki) and [framework wiki](https://github.com/flutter/flutter/wiki).
+
+This document will introduce you to the basic steps for developing for the Flutter framework (Dart).
+If you're interested in developing for the Flutter engine (C++, Java, Objective C), please
+switch to [the engine repo's `CONTRIBUTING.md` document](https://github.com/flutter/engine/blob/master/CONTRIBUTING.md).
+
+If you have an itch, work on that. If you are just looking for something good to start with, consider
+[the issues marked "easy fix"](https://github.com/flutter/flutter/issues?q=is%3Aopen+is%3Aissue+label%3A%22easy+fix%22+sort%3Areactions-%2B1-desc) in our issues list.
 
 Things you will need
 --------------------
 
  * Linux, Mac OS X, or Windows
  * git (used for source version control).
- * An IDE. We recommend [IntelliJ with the Flutter plugin](https://flutter.io/intellij-ide/).
+ * An IDE. We recommend [Android Studio with the Flutter plugin](https://flutter.io/using-ide/).
  * An ssh client (used to authenticate with GitHub).
  * Python (used by some of our tools).
  * The Android platform tools (see [Issue #55](https://github.com/flutter/flutter/issues/55)
@@ -18,7 +37,7 @@ Things you will need
    _If you're also working on the Flutter engine, you can use the
    copy of the Android platform tools in
    `.../engine/src/third_party/android_tools/sdk/platform-tools`._
-   - Mac: `brew install android-platform-tools`
+   - Mac: `brew cask install android-platform-tools`
    - Linux: `sudo apt-get install android-tools-adb`
 
 Getting the code and configuring your environment
@@ -79,7 +98,7 @@ analyzer. There are two main ways to run it. In either case you will
 want to run `flutter update-packages` first, or you will get bogus
 error messages about core classes like Offset from `dart:ui`.
 
-For a one-off, use `flutter analyze --flutter-repo`. This uses the `analysis_options_repo.yaml` file
+For a one-off, use `flutter analyze --flutter-repo`. This uses the `analysis_options.yaml` file
 at the root of the repository for its configuration.
 
 For continuous analysis, use `flutter analyze --flutter-repo --watch`. This uses normal
@@ -110,7 +129,7 @@ which provides flutter-specific extensions on top of [package:test](https://pub.
 option to start the test in a paused state and wait for connection from a debugger. This option lets you
 set breakpoints before the test runs.
 
-To run all the tests for the entire Flutter repository, the same way that Travis runs them, run `dart dev/bots/test.dart`.
+To run analysis and all the tests for the entire Flutter repository, the same way that Cirrus runs them, run `dart dev/bots/test.dart` and `dart dev/bots/analyze.dart`.
 
 If you've built [your own flutter engine](#working-on-the-engine-and-the-framework-at-the-same-time), you
 can pass `--local-engine` to change what flutter shell `flutter test` uses. For example,
@@ -126,7 +145,7 @@ Adding a test
 
 To add a test to the Flutter package, create a file whose name
 ends with `_test.dart` in the `packages/flutter/test` directory. The
-test should have a `main` function and use the `test` package.
+test should have a `main` function and use the `flutter_test` package.
 
 Working with flutter tools
 --------------------------
@@ -151,16 +170,8 @@ The pre-built flutter tool runs in release mode with the observatory off by defa
 To enable debugging mode and the observatory on the `flutter` tool, uncomment the
 `FLUTTER_TOOL_ARGS` line in the `bin/flutter` shell script.
 
-Contributing code
------------------
-
-We gladly accept contributions via GitHub pull requests.
-
-Please peruse our
-[style guides](https://github.com/flutter/flutter/wiki/Style-guide-for-Flutter-repo) and
-[design principles](https://flutter.io/design-principles/) before
-working on anything non-trivial. These guidelines are intended to
-keep the code consistent and avoid common pitfalls.
+Using git
+---------
 
 To start working on a patch:
 
@@ -179,7 +190,7 @@ To send us a pull request:
 Please make sure all your checkins have detailed commit messages explaining the patch.
 
 Once you've gotten an LGTM from a project maintainer and once your PR has received
-the green light from all our automated testing (Travis, Appveyor, etc), and once
+the green light from all our automated testing (running on Cirrus, etc), and once
 the tree is green (see the [design principles](https://flutter.io/design-principles/)
 document for more details), submit your changes to the `master` branch using one of
 the following methods:
@@ -239,30 +250,9 @@ the following steps.
 1. Follow the instructions above for creating a working copy of this repository.
 
 2. Follow the [contributing instructions](https://github.com/flutter/engine/blob/master/CONTRIBUTING.md)
-   for the engine repository to create a working copy of the engine. When you
-   create the `.gclient` file for the engine, be sure to create it in a
-   directory named `engine` that is a sibling of the directory in which you
-   cloned this repository. For example, if you cloned this repository into the
-   `/foo/bar/flutter` directory, you should create the `.gclient` file in the
-   `/foo/bar/engine` directory. The actual code from the engine repository will
-   end up in `/foo/bar/engine/src` because `gclient` creates a `src` directory
-   underneath the directory that contains the `.gclient` file.
-
-3. To run tests on your host machine, build one of the host configurations
-   (e.g., `out/host_debug_unopt`). To run examples on Android, build one of the
-   Android configurations (e.g., `out/android_debug_unopt`).
-   When running on the device with `--preview-dart-2` flag you will still need
-   to build corresponding host configuration (e.g., `out/host_debug_unopt` if you
-   are using `out/android_debug_unopt`, `out/host_release` if you use `out/android_release`).
-   Host configuration provides standalone dart sdk for the engine, that is used
-   to run engine dart scripts on the host.
-
-You should now be able to run the tests against your locally built
-engine using the `flutter test --local-engine=host_debug_unopt` command. To run
-one of the examples on your device using your locally built engine, use the
-`--local-engine=android_debug_unopt` option to the `flutter` tool:
-
- * `flutter run --local-engine=android_debug_unopt`
+   in the engine repository to create a working copy of the engine. The instructions
+   also explain how to use a locally-built engine instead of the one bundled with
+   your installation of the Flutter framework.
 
 Making a breaking change to the engine
 --------------------------------------
@@ -277,15 +267,6 @@ few steps:
    for instructions about how to publish a new version of the engine. Publishing
    a new version is important in order to not break folks using prebuilt
    binaries in their workflow (e.g., our customers).
-
-3. Land a change that update our dependency on the `sky_engine` and
-   `sky_services` packages to point to the new version of the engine that you
-   just published. These dependencies are defined by [packages/flutter/pubspec.yaml](packages/flutter/pubspec.yaml).
-   After changing the `pubspec.yaml` file, you'll need to run
-   `./dev/update_packages.dart` to update all the packages in this repository to
-   see the new dependency. As part of landing this change, you should make
-   whatever other changes are needed in this repository to account for your
-   breaking change.
 
 API docs for master branch
 --------------------------
@@ -304,7 +285,6 @@ Build infrastructure
 
 We build and test Flutter on:
 
-- Travis ([details](.travis.yml))
-- AppVeyor ([details](appveyor.yml))
+- [Cirrus](https://cirrus-ci.com/) ([details](.cirrus.yml))
 - Chromebots (a.k.a. "recipes", [details](dev/bots/README.md))
 - Devicelab (a.k.a. "cocoon", [details](dev/devicelab/README.md))

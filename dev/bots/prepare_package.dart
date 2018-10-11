@@ -68,7 +68,7 @@ Branch fromBranchName(String name) {
     case 'release':
       return Branch.release;
     default:
-      throw new ArgumentError('Invalid branch name.');
+      throw ArgumentError('Invalid branch name.');
   }
 }
 
@@ -78,11 +78,11 @@ Branch fromBranchName(String name) {
 class ProcessRunner {
   ProcessRunner({
     ProcessManager processManager,
-    this.subprocessOutput: true,
+    this.subprocessOutput = true,
     this.defaultWorkingDirectory,
-    this.platform: const LocalPlatform(),
+    this.platform = const LocalPlatform(),
   }) : processManager = processManager ?? const LocalProcessManager() {
-    environment = new Map<String, String>.from(platform.environment);
+    environment = Map<String, String>.from(platform.environment);
   }
 
   /// The platform to use for a starting environment.
@@ -112,15 +112,15 @@ class ProcessRunner {
   Future<String> runProcess(
     List<String> commandLine, {
     Directory workingDirectory,
-    bool failOk: false,
+    bool failOk = false,
   }) async {
     workingDirectory ??= defaultWorkingDirectory ?? Directory.current;
     if (subprocessOutput) {
       stderr.write('Running "${commandLine.join(' ')}" in ${workingDirectory.path}.\n');
     }
     final List<int> output = <int>[];
-    final Completer<Null> stdoutComplete = new Completer<Null>();
-    final Completer<Null> stderrComplete = new Completer<Null>();
+    final Completer<void> stdoutComplete = Completer<void>();
+    final Completer<void> stderrComplete = Completer<void>();
     Process process;
     Future<int> allComplete() async {
       await stderrComplete.future;
@@ -156,25 +156,26 @@ class ProcessRunner {
     } on ProcessException catch (e) {
       final String message = 'Running "${commandLine.join(' ')}" in ${workingDirectory.path} '
           'failed with:\n${e.toString()}';
-      throw new ProcessRunnerException(message);
+      throw ProcessRunnerException(message);
     } on ArgumentError catch (e) {
       final String message = 'Running "${commandLine.join(' ')}" in ${workingDirectory.path} '
           'failed with:\n${e.toString()}';
-      throw new ProcessRunnerException(message);
+      throw ProcessRunnerException(message);
     }
 
     final int exitCode = await allComplete();
     if (exitCode != 0 && !failOk) {
-      final String message =
-          'Running "${commandLine.join(' ')}" in ${workingDirectory.path} failed';
-      throw new ProcessRunnerException(
-          message, new ProcessResult(0, exitCode, null, 'returned $exitCode'));
+      final String message = 'Running "${commandLine.join(' ')}" in ${workingDirectory.path} failed';
+      throw ProcessRunnerException(
+        message,
+        ProcessResult(0, exitCode, null, 'returned $exitCode'),
+      );
     }
     return utf8.decoder.convert(output).trim();
   }
 }
 
-typedef Future<Uint8List> HttpReader(Uri url, {Map<String, String> headers});
+typedef HttpReader = Future<Uint8List> Function(Uri url, {Map<String, String> headers});
 
 /// Creates a pre-populated Flutter archive from a git repo.
 class ArchiveCreator {
@@ -192,13 +193,13 @@ class ArchiveCreator {
     this.revision,
     this.branch, {
     ProcessManager processManager,
-    bool subprocessOutput: true,
-    this.platform: const LocalPlatform(),
+    bool subprocessOutput = true,
+    this.platform = const LocalPlatform(),
     HttpReader httpReader,
   }) : assert(revision.length == 40),
-       flutterRoot = new Directory(path.join(tempDir.path, 'flutter')),
+       flutterRoot = Directory(path.join(tempDir.path, 'flutter')),
        httpReader = httpReader ?? http.readBytes,
-       _processRunner = new ProcessRunner(
+       _processRunner = ProcessRunner(
          processManager: processManager,
          subprocessOutput: subprocessOutput,
          platform: platform,
@@ -275,7 +276,7 @@ class ArchiveCreator {
   /// Performs all of the steps needed to create an archive.
   Future<File> createArchive() async {
     assert(_version != null, 'Must run initializeRepo before createArchive');
-    _outputFile = new File(path.join(outputDir.absolute.path, _archiveName));
+    _outputFile = File(path.join(outputDir.absolute.path, _archiveName));
     await _installMinGitIfNeeded();
     await _populateCaches();
     await _archiveFiles(_outputFile);
@@ -290,7 +291,7 @@ class ArchiveCreator {
 
   /// Clone the Flutter repo and make sure that the git environment is sane
   /// for when the user will unpack it.
-  Future<Null> _checkoutFlutter() async {
+  Future<void> _checkoutFlutter() async {
     // We want the user to start out the in the specified branch instead of a
     // detached head. To do that, we need to make sure the branch points at the
     // desired revision.
@@ -302,23 +303,23 @@ class ArchiveCreator {
   }
 
   /// Retrieve the MinGit executable from storage and unpack it.
-  Future<Null> _installMinGitIfNeeded() async {
+  Future<void> _installMinGitIfNeeded() async {
     if (!platform.isWindows) {
       return;
     }
     final Uint8List data = await httpReader(_minGitUri);
-    final File gitFile = new File(path.join(tempDir.absolute.path, 'mingit.zip'));
+    final File gitFile = File(path.join(tempDir.absolute.path, 'mingit.zip'));
     await gitFile.writeAsBytes(data, flush: true);
 
     final Directory minGitPath =
-        new Directory(path.join(flutterRoot.absolute.path, 'bin', 'mingit'));
+        Directory(path.join(flutterRoot.absolute.path, 'bin', 'mingit'));
     await minGitPath.create(recursive: true);
     await _unzipArchive(gitFile, workingDirectory: minGitPath);
   }
 
   /// Prepare the archive repo so that it has all of the caches warmed up and
   /// is configured for the user to begin working.
-  Future<Null> _populateCaches() async {
+  Future<void> _populateCaches() async {
     await _runFlutter(<String>['doctor']);
     await _runFlutter(<String>['update-packages']);
     await _runFlutter(<String>['precache']);
@@ -341,7 +342,7 @@ class ArchiveCreator {
   }
 
   /// Write the archive to the given output file.
-  Future<Null> _archiveFiles(File outputFile) async {
+  Future<void> _archiveFiles(File outputFile) async {
     if (outputFile.path.toLowerCase().endsWith('.zip')) {
       await _createZipArchive(outputFile, flutterRoot);
     } else if (outputFile.path.toLowerCase().endsWith('.tar.xz')) {
@@ -350,19 +351,23 @@ class ArchiveCreator {
   }
 
   Future<String> _runFlutter(List<String> args, {Directory workingDirectory}) {
-    return _processRunner.runProcess(<String>[_flutter]..addAll(args),
-        workingDirectory: workingDirectory ?? flutterRoot);
+    return _processRunner.runProcess(
+      <String>[_flutter]..addAll(args),
+      workingDirectory: workingDirectory ?? flutterRoot,
+    );
   }
 
   Future<String> _runGit(List<String> args, {Directory workingDirectory}) {
-    return _processRunner.runProcess(<String>['git']..addAll(args),
-        workingDirectory: workingDirectory ?? flutterRoot);
+    return _processRunner.runProcess(
+      <String>['git']..addAll(args),
+      workingDirectory: workingDirectory ?? flutterRoot,
+    );
   }
 
   /// Unpacks the given zip file into the currentDirectory (if set), or the
   /// same directory as the archive.
   Future<String> _unzipArchive(File archive, {Directory workingDirectory}) {
-    workingDirectory ??= new Directory(path.dirname(archive.absolute.path));
+    workingDirectory ??= Directory(path.dirname(archive.absolute.path));
     List<String> commandLine;
     if (platform.isWindows) {
       commandLine = <String>[
@@ -400,8 +405,10 @@ class ArchiveCreator {
         path.basename(source.path),
       ];
     }
-    return _processRunner.runProcess(commandLine,
-        workingDirectory: new Directory(path.dirname(source.absolute.path)));
+    return _processRunner.runProcess(
+      commandLine,
+      workingDirectory: Directory(path.dirname(source.absolute.path)),
+    );
   }
 
   /// Create a tar archive from the directory source.
@@ -411,7 +418,7 @@ class ArchiveCreator {
       'cJf',
       output.absolute.path,
       path.basename(source.absolute.path),
-    ], workingDirectory: new Directory(path.dirname(source.absolute.path)));
+    ], workingDirectory: Directory(path.dirname(source.absolute.path)));
   }
 }
 
@@ -423,12 +430,12 @@ class ArchivePublisher {
     this.version,
     this.outputFile, {
     ProcessManager processManager,
-    bool subprocessOutput: true,
-    this.platform: const LocalPlatform(),
+    bool subprocessOutput = true,
+    this.platform = const LocalPlatform(),
   }) : assert(revision.length == 40),
        platformName = platform.operatingSystem.toLowerCase(),
-       metadataGsPath = '$gsReleaseFolder/releases_${platform.operatingSystem.toLowerCase()}.json',
-       _processRunner = new ProcessRunner(
+       metadataGsPath = '$gsReleaseFolder/${getMetadataFilename(platform)}',
+       _processRunner = ProcessRunner(
          processManager: processManager,
          subprocessOutput: subprocessOutput,
        );
@@ -443,56 +450,86 @@ class ArchivePublisher {
   final File outputFile;
   final ProcessRunner _processRunner;
   String get branchName => getBranchName(branch);
-  String get destinationArchivePath =>
-      '$branchName/$platformName/${path.basename(outputFile.path)}';
+  String get destinationArchivePath => '$branchName/$platformName/${path.basename(outputFile.path)}';
+  static String getMetadataFilename(Platform platform) => 'releases_${platform.operatingSystem.toLowerCase()}.json';
 
   /// Publish the archive to Google Storage.
-  Future<Null> publishArchive() async {
+  Future<void> publishArchive() async {
     final String destGsPath = '$gsReleaseFolder/$destinationArchivePath';
     await _cloudCopy(outputFile.absolute.path, destGsPath);
     assert(tempDir.existsSync());
     await _updateMetadata();
   }
 
-  Future<Null> _updateMetadata() async {
-    final String currentMetadata = await _runGsUtil(<String>['cat', metadataGsPath]);
-    if (currentMetadata.isEmpty) {
-      throw new ProcessRunnerException('Empty metadata received from server');
-    }
-
-    Map<String, dynamic> jsonData;
-    try {
-      jsonData = json.decode(currentMetadata);
-    } on FormatException catch (e) {
-      throw new ProcessRunnerException('Unable to parse JSON metadata received from cloud: $e');
-    }
-
-    // Update the metadata file with the data for this package.
+  Map<String, dynamic> _addRelease(Map<String, dynamic> jsonData) {
     jsonData['base_url'] = '$baseUrl$releaseFolder';
     if (!jsonData.containsKey('current_release')) {
       jsonData['current_release'] = <String, String>{};
     }
     jsonData['current_release'][branchName] = revision;
     if (!jsonData.containsKey('releases')) {
-      jsonData['releases'] = <String, dynamic>{};
+      jsonData['releases'] = <Map<String, dynamic>>[];
     }
-    if (!jsonData['releases'].containsKey(revision)) {
-      jsonData['releases'][revision] = <String, Map<String, String>>{};
-    }
-    final Map<String, String> metadata = <String, String>{};
-    metadata['${platformName}_archive'] = destinationArchivePath;
-    metadata['release_date'] = new DateTime.now().toUtc().toIso8601String();
-    metadata['version'] = version;
-    jsonData['releases'][revision][branchName] = metadata;
 
-    final File tempFile = new File(path.join(tempDir.absolute.path, 'releases_$platformName.json'));
-    const JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-    tempFile.writeAsStringSync(encoder.convert(jsonData));
-    await _cloudCopy(tempFile.absolute.path, metadataGsPath);
+    final Map<String, dynamic> newEntry = <String, dynamic>{};
+    newEntry['hash'] = revision;
+    newEntry['channel'] = branchName;
+    newEntry['version'] = version;
+    newEntry['release_date'] = DateTime.now().toUtc().toIso8601String();
+    newEntry['archive'] = destinationArchivePath;
+
+    // Search for any entries with the same hash and channel and remove them.
+    final List<dynamic> releases = jsonData['releases'];
+    final List<Map<String, dynamic>> prunedReleases = <Map<String, dynamic>>[];
+    for (Map<String, dynamic> entry in releases) {
+      if (entry['hash'] != newEntry['hash'] || entry['channel'] != newEntry['channel']) {
+        prunedReleases.add(entry);
+      }
+    }
+
+    prunedReleases.add(newEntry);
+    prunedReleases.sort((Map<String, dynamic> a, Map<String, dynamic> b) {
+      final DateTime aDate = DateTime.parse(a['release_date']);
+      final DateTime bDate = DateTime.parse(b['release_date']);
+      return bDate.compareTo(aDate);
+    });
+    jsonData['releases'] = prunedReleases;
+    return jsonData;
   }
 
-  Future<String> _runGsUtil(List<String> args,
-      {Directory workingDirectory, bool failOk: false}) async {
+  Future<void> _updateMetadata() async {
+    // We can't just cat the metadata from the server with 'gsutil cat', because
+    // Windows wants to echo the commands that execute in gsutil.bat to the
+    // stdout when we do that. So, we copy the file locally and then read it
+    // back in.
+    final File metadataFile = File(
+      path.join(tempDir.absolute.path, getMetadataFilename(platform)),
+    );
+    await _runGsUtil(<String>['cp', metadataGsPath, metadataFile.absolute.path]);
+    final String currentMetadata = metadataFile.readAsStringSync();
+    if (currentMetadata.isEmpty) {
+      throw ProcessRunnerException('Empty metadata received from server');
+    }
+
+    Map<String, dynamic> jsonData;
+    try {
+      jsonData = json.decode(currentMetadata);
+    } on FormatException catch (e) {
+      throw ProcessRunnerException('Unable to parse JSON metadata received from cloud: $e');
+    }
+
+    jsonData = _addRelease(jsonData);
+
+    const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+    metadataFile.writeAsStringSync(encoder.convert(jsonData));
+    await _cloudCopy(metadataFile.absolute.path, metadataGsPath);
+  }
+
+  Future<String> _runGsUtil(
+    List<String> args, {
+    Directory workingDirectory,
+    bool failOk = false,
+  }) async {
     return _processRunner.runProcess(
       <String>['gsutil']..addAll(args),
       workingDirectory: workingDirectory,
@@ -530,10 +567,10 @@ class ArchivePublisher {
 /// packages, and the flutter cache in bin/cache with the appropriate
 /// dependencies and snapshots.
 ///
-/// Note that archives contain the executables and customizations for the
-/// platform that they are created on.
-Future<Null> main(List<String> argList) async {
-  final ArgParser argParser = new ArgParser();
+/// Archives contain the executables and customizations for the platform that
+/// they are created on.
+Future<void> main(List<String> argList) async {
+  final ArgParser argParser = ArgParser();
   argParser.addOption(
     'temp_dir',
     defaultsTo: null,
@@ -550,7 +587,7 @@ Future<Null> main(List<String> argList) async {
   argParser.addOption(
     'branch',
     defaultsTo: null,
-    allowed: Branch.values.map((Branch branch) => getBranchName(branch)),
+    allowed: Branch.values.map<String>((Branch branch) => getBranchName(branch)),
     help: 'The Flutter branch to build the archive with. Required.',
   );
   argParser.addOption(
@@ -603,10 +640,10 @@ Future<Null> main(List<String> argList) async {
   Directory tempDir;
   bool removeTempDir = false;
   if (args['temp_dir'] == null || args['temp_dir'].isEmpty) {
-    tempDir = Directory.systemTemp.createTempSync('flutter_');
+    tempDir = Directory.systemTemp.createTempSync('flutter_package.');
     removeTempDir = true;
   } else {
-    tempDir = new Directory(args['temp_dir']);
+    tempDir = Directory(args['temp_dir']);
     if (!tempDir.existsSync()) {
       errorExit("Temporary directory ${args['temp_dir']} doesn't exist.");
     }
@@ -616,21 +653,21 @@ Future<Null> main(List<String> argList) async {
   if (args['output'] == null) {
     outputDir = tempDir;
   } else {
-    outputDir = new Directory(args['output']);
+    outputDir = Directory(args['output']);
     if (!outputDir.existsSync()) {
       outputDir.createSync(recursive: true);
     }
   }
 
   final Branch branch = fromBranchName(args['branch']);
-  final ArchiveCreator creator = new ArchiveCreator(tempDir, outputDir, revision, branch);
+  final ArchiveCreator creator = ArchiveCreator(tempDir, outputDir, revision, branch);
   int exitCode = 0;
   String message;
   try {
     final String version = await creator.initializeRepo();
     final File outputFile = await creator.createArchive();
     if (args['publish']) {
-      final ArchivePublisher publisher = new ArchivePublisher(
+      final ArchivePublisher publisher = ArchivePublisher(
         tempDir,
         revision,
         branch,
